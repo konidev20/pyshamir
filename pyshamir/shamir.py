@@ -43,7 +43,7 @@ def combine(parts):
     # set the x value for each sample and ensure the no_sample values are the same , otherwise div() can be unhappy
     check_map = {}
 
-    for i,part in enumerate(parts):
+    for i, part in enumerate(parts):
         samp = part[first_part_len-1]
         if samp in check_map:
             raise Exception("Duplicate sample")
@@ -51,7 +51,7 @@ def combine(parts):
         x_samples[i] = samp
 
     # Reconstruct each  byte
-    for idx,_ in enumerate(secret):
+    for idx, _ in enumerate(secret):
         for i, part in enumerate(parts):
             y_samples[i] = part[idx]
 
