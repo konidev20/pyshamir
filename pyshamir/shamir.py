@@ -142,7 +142,7 @@ def combine(parts):
         check_map[samp] = True
         x_samples[i] = samp
 
-    # Reconvtruct each  byte
+    # Reconstruct each  byte
     for idx,_ in enumerate(secret):
         for i, part in enumerate(parts):
             y_samples[i] = part[idx]
