@@ -1,8 +1,10 @@
 from ._utils import add, mul, div
 
 
-# interpolatePolynomial takes N sample points and returns the value of the polynomial at x using Lagrange interpolation
 def interpolate_polynomial(x_samples, y_samples, x):
+    """
+    Takes N sample points and returns the value of the polynomial at x using Lagrange interpolation
+    """
     limit = len(x_samples)
     result = 0
     for i in range(limit):
