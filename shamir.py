@@ -70,6 +70,7 @@ expTable = [
 		0xaa, 0xcd, 0x9a, 0xa0, 0x75, 0x54, 0x0e, 0x01,
 ]
 
+
 def add(a, b):
     return a ^ b
 
@@ -93,7 +94,7 @@ def div(a, b):
 
 
 # interpolatePolynomial takes N sample points and returns the value of the polynomial at x using Lagrange interpolation
-def interpolatePolynomial(x_samples, y_samples, x):
+def interpolate_polynomial(x_samples, y_samples, x):
     limit = len(x_samples)
     result = 0
     for i in range(limit):
@@ -109,23 +110,23 @@ def interpolatePolynomial(x_samples, y_samples, x):
     return result
 
 
-def Combine(parts):
+def combine(parts):
     # Verify enough parts are present
     if len(parts) < 2:
         raise Exception("Not enough parts to combine")
 
     # Verify all parts are all the same length
-    firstPartLen = len(parts[0])
+    first_part_len = len(parts[0])
 
-    if firstPartLen < 2:
+    if first_part_len < 2:
         raise Exception("Part is too short")
 
     for part in parts:
-        if len(part) != firstPartLen:
+        if len(part) != first_part_len:
             raise Exception("Parts are not the same length")
 
     # Create a buffer to store the reconstructed secret
-    secret = bytearray(firstPartLen - 1)
+    secret = bytearray(first_part_len - 1)
 
     # Buffer to store the samples
     x_samples = bytearray(len(parts))
@@ -135,7 +136,7 @@ def Combine(parts):
     check_map = {}
 
     for i,part in enumerate(parts):
-        samp = part[firstPartLen-1]
+        samp = part[first_part_len-1]
         if samp in check_map:
             raise Exception("Duplicate sample")
         check_map[samp] = True
@@ -147,9 +148,9 @@ def Combine(parts):
             y_samples[i] = part[idx]
 
         # interpolate the polynomial and compute the vault at 0
-        val = interpolatePolynomial(x_samples, y_samples, 0)
+        val = interpolate_polynomial(x_samples, y_samples, 0)
 
-        # Evaluate the 0th vaule to get the intercept
+        # Evaluate the 0th value to get the intercept
         secret[idx] = val
 
     return secret
