@@ -4,6 +4,9 @@ from ._constants import LOG_TABLE, EXP_TABLE
 
 
 def add(a, b):
+    """
+    Adds two numbers in the finite field GF(256)
+    """
     return a ^ b
 
 
@@ -33,6 +36,9 @@ def div(a, b):
 
 
 class Polynomial:
+    """
+    Takes N sample points and returns the value of the polynomial at x using Lagrange interpolation
+    """
     def __init__(self, degree):
         self.coefficients = bytearray(degree + 1)
 

@@ -83,15 +83,15 @@ def split(secret: bytes, parts: int, threshold: int) -> list[bytearray]:
     """
     # Sanity check the input
     if parts < threshold:
-        raise Exception("Parts must be greater than threshold")
+        raise ValueError("Parts must be greater than threshold")
     if parts > 255:
-        raise Exception("Parts must be less than 256")
+        raise ValueError("Parts must be less than 256")
     if threshold < 2:
-        raise Exception("Threshold must be greater than 1")
+        raise ValueError("Threshold must be greater than 1")
     if threshold > 255:
-        raise Exception("Threshold must be less than 256")
+        raise ValueError("Threshold must be less than 256")
     if len(secret) < 1:
-        raise Exception("Secret must be at least 1 byte long")
+        raise ValueError("Secret must be at least 1 byte long")
 
     # Generate random list of x coordinates
     x_coordinates = [secrets.randbelow(255) for _ in range(1, 256)]
