@@ -11,8 +11,8 @@ def mul(a, b):
     """
     log_a = LOG_TABLE[a]
     log_b = LOG_TABLE[b]
-    sum = (int(log_a) + int(log_b)) % 255
-    ret = int(EXP_TABLE[sum])
+    log_sum = (int(log_a) + int(log_b)) % 255
+    ret = int(EXP_TABLE[log_sum])
     return int(ret)
 
 
