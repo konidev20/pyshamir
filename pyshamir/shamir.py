@@ -1,5 +1,5 @@
 import secrets
-from ._utils import add, mul, div , make_polynomial, interpolate_polynomial
+from ._utils import make_polynomial, interpolate_polynomial
 
 def combine(parts: list[bytearray]) -> bytearray:
     """
