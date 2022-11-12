@@ -1,7 +1,9 @@
 from ._constants import LOG_TABLE, EXP_TABLE
 
+
 def add(a, b):
     return a ^ b
+
 
 def mul(a, b):
     """
@@ -19,12 +21,13 @@ def div(a, b):
     Divides two numbers in the finite field GF(256)
     """
     if b == 0:
-        raise Exception("Divide by zero")
+        raise ZeroDivisionError("Divide by zero")
     log_a = LOG_TABLE[a]
     log_b = LOG_TABLE[b]
     diff = ((int(log_a) - int(log_b)) + 255) % 255
     ret = int(EXP_TABLE[diff])
     return int(ret)
+
 
 def interpolate_polynomial(x_samples, y_samples, x):
     """
