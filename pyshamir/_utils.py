@@ -3,14 +3,14 @@ import secrets
 from ._constants import LOG_TABLE, EXP_TABLE
 
 
-def add(a, b):
+def add(a, b)->int:
     """
     Adds two numbers in the finite field GF(256)
     """
-    return a ^ b
+    return int(a ^ b)
 
 
-def mul(a, b):
+def mul(a, b)->int:
     """
     Multiplies two numbers in the finite field GF(256)
     """
@@ -21,7 +21,7 @@ def mul(a, b):
     return int(ret)
 
 
-def div(a, b):
+def div(a, b)->int:
     """
     Divides two numbers in the finite field GF(256)
     """
@@ -42,7 +42,7 @@ class Polynomial:
     def __init__(self, degree):
         self.coefficients = bytearray(degree + 1)
 
-    def evaluate(self, x):
+    def evaluate(self, x)->int:
         # origin case
         if x == 0:
             return self.coefficients[0]
@@ -56,7 +56,7 @@ class Polynomial:
         return out
 
 
-def make_polynomial(intercept, degree):
+def make_polynomial(intercept, degree)->Polynomial:
     """
     Creates a random polynomial with the given intercept and degree
     :param intercept:
@@ -73,7 +73,7 @@ def make_polynomial(intercept, degree):
 
     return polynomial_instance
 
-def interpolate_polynomial(x_samples, y_samples, x):
+def interpolate_polynomial(x_samples, y_samples, x)->int:
     """
     Takes N sample points and returns the value of the polynomial at x using Lagrange interpolation
     """
