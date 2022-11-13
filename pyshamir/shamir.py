@@ -68,8 +68,6 @@ def split(secret: bytes, parts: int, threshold: int) -> list[bytearray]:
         raise ValueError("Parts must be less than 256")
     if threshold < 2:
         raise ValueError("Threshold must be greater than 1")
-    if threshold > 255:
-        raise ValueError("Threshold must be less than 256")
     if secret is None:
         raise ValueError("Secret must be at least 1 byte long")
     if len(secret) < 1:
