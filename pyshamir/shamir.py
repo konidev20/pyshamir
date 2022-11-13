@@ -8,6 +8,8 @@ def combine(parts: list[bytearray]) -> bytearray:
     :return:
     """
     # Verify enough parts are present
+    if parts is None:
+        raise ValueError("Not enough parts to combine")
     if len(parts) < 2:
         raise ValueError("Not enough parts to combine")
 
