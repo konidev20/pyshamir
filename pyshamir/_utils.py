@@ -1,8 +1,5 @@
 import secrets
-import random
-
 from ._constants import LOG_TABLE, EXP_TABLE
-
 
 def add(a, b)->int:
     """
@@ -10,7 +7,6 @@ def add(a, b)->int:
     """
     out = a ^ b
     return out
-
 
 def mul(a, b)->int:
     """
@@ -25,7 +21,6 @@ def mul(a, b)->int:
         return 0
     
     return int(ret)
-
 
 def div(a, b)->int:
     """
@@ -42,8 +37,6 @@ def div(a, b)->int:
         return 0
 
     return int(ret)
-
-
 
 class Polynomial:
     """
@@ -65,7 +58,6 @@ class Polynomial:
             out = add(mul(out, x), coeff)
         return out
 
-
 def make_polynomial(intercept, degree)->Polynomial:
     """
     Creates a random polynomial with the given intercept and degree
@@ -77,12 +69,9 @@ def make_polynomial(intercept, degree)->Polynomial:
 
     # Set the intercept
     polynomial_instance.coefficients[0] = intercept
-    polynomial_instance.coefficients[1] = 114
-    polynomial_instance.coefficients[2] = 102
 
     # assign random co-efficients to the polynomial
-    #polynomial_instance.coefficients[1:] = secrets.token_bytes(degree)
-    #polynomial_instance.coefficients[1:] = [random.randrange(0,254) for _ in range(degree)]
+    polynomial_instance.coefficients[1:] = secrets.token_bytes(degree)
 
     return polynomial_instance
 
