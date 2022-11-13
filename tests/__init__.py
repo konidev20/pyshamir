@@ -1,1 +1,1 @@
-from .tests import TestCombine, TestSplit
+from .test_shamir import TestCombine, TestSplit
