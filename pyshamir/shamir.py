@@ -62,12 +62,12 @@ def split(secret: bytes, parts: int, threshold: int) -> list[bytearray]:
     :return:
     """
     # Sanity check the input
+    if parts < 2 or threshold < 2:
+        raise ValueError("Parts and threshold must be greater than 1")
     if parts < threshold:
         raise ValueError("Parts must be greater than threshold")
     if parts > 255:
         raise ValueError("Parts must be less than 256")
-    if threshold < 2:
-        raise ValueError("Threshold must be greater than 1")
     if secret is None:
         raise ValueError("Secret must be at least 1 byte long")
     if len(secret) < 1:
