@@ -1,4 +1,5 @@
 import secrets
+import random
 
 from ._constants import LOG_TABLE, EXP_TABLE
 
@@ -7,7 +8,8 @@ def add(a, b)->int:
     """
     Adds two numbers in the finite field GF(256)
     """
-    return int(a ^ b)
+    out = a ^ b
+    return out
 
 
 def mul(a, b)->int:
@@ -18,6 +20,10 @@ def mul(a, b)->int:
     log_b = LOG_TABLE[b]
     log_sum = (int(log_a) + int(log_b)) % 255
     ret = int(EXP_TABLE[log_sum])
+
+    if a == 0 or b == 0:
+        return 0
+    
     return int(ret)
 
 
@@ -31,6 +37,10 @@ def div(a, b)->int:
     log_b = LOG_TABLE[b]
     diff = ((int(log_a) - int(log_b)) + 255) % 255
     ret = int(EXP_TABLE[diff])
+
+    if a == 0:
+        return 0
+
     return int(ret)
 
 
@@ -67,9 +77,12 @@ def make_polynomial(intercept, degree)->Polynomial:
 
     # Set the intercept
     polynomial_instance.coefficients[0] = intercept
+    polynomial_instance.coefficients[1] = 114
+    polynomial_instance.coefficients[2] = 102
 
     # assign random co-efficients to the polynomial
-    polynomial_instance.coefficients[1:] = secrets.token_bytes(degree)
+    #polynomial_instance.coefficients[1:] = secrets.token_bytes(degree)
+    #polynomial_instance.coefficients[1:] = [random.randrange(0,254) for _ in range(degree)]
 
     return polynomial_instance
 
