@@ -22,5 +22,4 @@ jobs:
     - name: Run Tests and Coverage
       continue-on-error: true
       run: |
-        python -m coverage run -m unittest ./tests.py
-        python -m coverage report
+        python unittest ./tests.py
