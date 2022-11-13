@@ -22,4 +22,4 @@ jobs:
     - name: Run Tests and Coverage
       continue-on-error: true
       run: |
-        ls
+        python -m unittest tests.py
