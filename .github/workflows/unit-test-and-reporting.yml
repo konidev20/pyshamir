@@ -22,4 +22,4 @@ jobs:
     - name: Run Tests and Coverage
       continue-on-error: true
       run: |
-        python -m unittest discover -s ./tests -p 'test_*.py' -t .
+        python -m unittest discover tests
