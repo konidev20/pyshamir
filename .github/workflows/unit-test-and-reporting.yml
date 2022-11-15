@@ -26,7 +26,7 @@ jobs:
     - name: Run Tests and Coverage
       continue-on-error: true
       run: |
-        python -m coverage run --source pyshamir -m unittest discover -s ./tests -p test_*.py
+        python -m coverage run --source pyshamir -m unittest discover -p test_*.py
         python -m coverage xml
     - name: SonarCloud Scan
       uses: SonarSource/sonarcloud-github-action@master
