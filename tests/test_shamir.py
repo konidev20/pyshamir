@@ -74,3 +74,6 @@ class TestCombine(unittest.TestCase):
     parts = [bytearray(b'ab'),bytearray(b'ab')]
     with self.assertRaisesRegex(ValueError, 'Duplicate sample'):
       combine(parts)
+
+if __name__ == '__main__':
+    unittest.main()
