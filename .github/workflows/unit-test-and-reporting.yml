@@ -11,6 +11,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+    - name: Fetch Files
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 100
     - name: Set up Python 3.9
       uses: actions/setup-python@v2
       with:
@@ -22,6 +26,5 @@ jobs:
     - name: Run Tests and Coverage
       continue-on-error: true
       run: |
-        pwd
-        ls ../../
-        python -m unittest discover -s ../tests -t ../
+        ls
+        python -m unittest discover -s ./tests -p test_*.py
