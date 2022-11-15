@@ -37,5 +37,5 @@ jobs:
         args:
           -Dsonar.projectKey=konidev20_pyshamir
           -Dsonar.organization=konidev20
-          -Dsonar.tests=coverage.xml
+          -Dsonar.python.coverage.reportPaths=coverage.xml
 
