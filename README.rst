@@ -12,6 +12,7 @@ Usage
 Split & Combine
 ---------------
 .. code-block::
+    
         from pyshamir import split, combine
         import secrets
 
