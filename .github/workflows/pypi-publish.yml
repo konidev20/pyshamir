@@ -12,8 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Compute version
-        id: version
-        run: echo "version=$(perl -pe '($_)=/([0-9]+([.][0-9]+)+)/')" >>${GITHUB_ENV}
+        id: compute_version
+        run: echo "version=$(echo ${{ github.ref_name }} | perl -pe '($_)=/([0-9]+([.][0-9]+)+)/')" >>${GITHUB_OUTPUT}
       - name: Setup Python 3.7
         uses: actions/setup-python@v3
         with:
@@ -46,8 +46,8 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_name: pyshamir-${{ env.version }}.tar.gz
-          asset_path: ./dist/pyshamir-${{ env.version }}.tar.gz
+          asset_name: pyshamir-${{ steps.compute_version.outputs.version }}.tar.gz
+          asset_path: ./dist/pyshamir-${{ steps.compute_version.outputs.version }}.tar.gz
           asset_content_type: application/gzip
       - name: Publish dist 📦 to PyPI
         if: startsWith(github.ref, 'refs/tags')
