@@ -35,5 +35,5 @@ Split & Combine
 
 References
 ==========
-#. `Shamir Secret Sharing | Wikipedia <https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing>`
-#. `Go Implementation | HashiCorp Vault <https://github.com/hashicorp/vault/tree/main/shamir>`
+#. `Shamir Secret Sharing | Wikipedia <https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing>`_
+#. `Go Implementation | HashiCorp Vault <https://github.com/hashicorp/vault/tree/main/shamir>`_
