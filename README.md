@@ -1,4 +1,5 @@
 # pyshamir
+
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=konidev20_pyshamir&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=konidev20_pyshamir)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=konidev20_pyshamir&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=konidev20_pyshamir)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=konidev20_pyshamir&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=konidev20_pyshamir)
@@ -9,14 +10,16 @@
 Python port of Shamir key Split and Combine methods from Hashicorp Vault.
 
 ## Installation
-```
+
+```sh
 pip install pyshamir 
 ```
 
 ## Usage
 
 ### Split & Combine
-```
+
+```py
 from pyshamir import split, combine
 import secrets
 
@@ -37,5 +40,6 @@ recomb_secret = combine(parts)
 ```
 
 ## References
+
 1. [Shamir Secret Sharing | Wikipedia](https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing)
 2. [Go Implementation | HashiCorp Vault](https://github.com/hashicorp/vault/tree/main/shamir)
