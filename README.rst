@@ -1,6 +1,13 @@
 ========
 pyshamir
 ========
+
+.. image:: https://sonarcloud.io/api/project_badges/measure?project=konidev20_pyshamir&metric=alert_status
+
+.. image:: https://sonarcloud.io/api/project_badges/measure?project=konidev20_pyshamir&metric=security_rating
+
+.. image:: https://sonarcloud.io/api/project_badges/measure?project=konidev20_pyshamir&metric=coverage
+
 Python port of HashiCorp Vault's Shamir key Split and Combine methods.
 
 Installation
