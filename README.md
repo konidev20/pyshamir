@@ -6,7 +6,7 @@
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=konidev20_pyshamir&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=konidev20_pyshamir)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=konidev20_pyshamir&metric=coverage)](https://sonarcloud.io/summary/new_code?id=konidev20_pyshamir)
 
-Python port of HashiCorp Vault's Shamir key Split and Combine methods.
+Python port of Shamir key Split and Combine methods from Hashicorp Vault.
 
 ## Installation
 ```
