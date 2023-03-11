@@ -15,7 +15,7 @@ class TestSplit(unittest.TestCase):
 
     # test that the parts are different
     for i in range(len(parts) - 1):
-      self.assertNotEqual(parts[i], parts[i + 1])
+      self.assertNotEqual(parts[i].hex(), parts[i + 1].hex())
 
   def test_split_invalid(self):
     with self.assertRaisesRegex(ValueError, 'Parts and threshold must be greater than 1'):
