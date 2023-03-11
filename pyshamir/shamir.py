@@ -1,4 +1,4 @@
-import secrets
+import random
 from ._utils import make_polynomial, interpolate_polynomial
 
 def combine(parts: list[bytearray]) -> bytearray:
@@ -74,7 +74,7 @@ def split(secret: bytes, parts: int, threshold: int) -> list[bytearray]:
         raise ValueError("Secret must be at least 1 byte long")
 
     # Generate random list of x coordinates
-    x_coordinates = [secrets.randbelow(255) for _ in range(1, 256)]
+    x_coordinates = random.sample(range(255), 255)
 
     # Allocate the output array , initalize the final byte of the output with the offset.
     # This is used to ensure that the same secret can be split into different parts
