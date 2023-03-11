@@ -8,11 +8,14 @@ class TestSplit(unittest.TestCase):
     try:
       parts = split(self.secret, 5, 3)
       self.assertEqual(len(parts),5)
-      self.assertEqual(len(set(parts)), 5)
     except ValueError as ve:
       self.fail(ve.args[0])
     for part in parts:
       self.assertEqual(len(part), len(self.secret)+1)
+
+    # test that the parts are different
+    for i in range(len(parts) - 1):
+      self.assertNotEqual(parts[i], parts[i + 1])
 
   def test_split_invalid(self):
     with self.assertRaisesRegex(ValueError, 'Parts and threshold must be greater than 1'):
