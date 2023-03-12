@@ -94,20 +94,8 @@ def interpolate_polynomial(x_samples, y_samples, x)->int:
         result = add(result, group)
     return result
 
-def constant_time_sample(seq, k):
-    n = len(seq)
-    result = [None] * k
-    for i in range(k):
-        j = random.randint(i, n-1)
-        result[i] = seq[j]
-        seq[i], seq[j] = seq[j], seq[i]
-    return result
-
 def generate_x_coordinates(n):
-    while True:
-        seq = list(range(n))
-        x_coordinates = constant_time_sample(seq, 255)
-        x_coordinates = list(set(x_coordinates))
-        if len(x_coordinates) == 255:
-            break
+    x_coordinates = list(range(n+1))
+    secrets.SystemRandom().shuffle(x_coordinates)
+    x_coordinates = x_coordinates[:-1]
     return x_coordinates

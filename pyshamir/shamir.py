@@ -75,10 +75,6 @@ def split(secret: bytes, parts: int, threshold: int) -> list[bytearray]:
 
     # Generate random list of x coordinates
     x_coordinates = generate_x_coordinates(255)
-    # while len(x_coordinates) < 255:
-    #     x = secrets.randbelow(255)
-    #     if x not in x_coordinates:
-    #         x_coordinates.append(x)
 
     # Allocate the output array , initalize the final byte of the output with the offset.
     # This is used to ensure that the same secret can be split into different parts
@@ -86,6 +82,7 @@ def split(secret: bytes, parts: int, threshold: int) -> list[bytearray]:
     for i in range(len(output)):
         output[i] = bytearray(len(secret) + 1)
         output[i][len(secret)] = int(x_coordinates[i]) + 1
+        print(list(output[i]))
 
     for i, val in enumerate(secret):
         polynomial_instance = make_polynomial(val, int(threshold - 1))
