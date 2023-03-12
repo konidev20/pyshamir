@@ -1,5 +1,4 @@
 import secrets
-import random
 from ._constants import LOG_TABLE, EXP_TABLE
 
 def add(a, b)->int:
