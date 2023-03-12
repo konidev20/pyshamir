@@ -82,7 +82,6 @@ def split(secret: bytes, parts: int, threshold: int) -> list[bytearray]:
     for i in range(len(output)):
         output[i] = bytearray(len(secret) + 1)
         output[i][len(secret)] = int(x_coordinates[i]) + 1
-        print(list(output[i]))
 
     for i, val in enumerate(secret):
         polynomial_instance = make_polynomial(val, int(threshold - 1))
