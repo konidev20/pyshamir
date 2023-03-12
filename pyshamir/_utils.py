@@ -1,4 +1,5 @@
 import secrets
+import random
 from ._constants import LOG_TABLE, EXP_TABLE
 
 def add(a, b)->int:
@@ -92,3 +93,21 @@ def interpolate_polynomial(x_samples, y_samples, x)->int:
         group = mul(y_samples[i], basis)
         result = add(result, group)
     return result
+
+def constant_time_sample(seq, k):
+    n = len(seq)
+    result = [None] * k
+    for i in range(k):
+        j = random.randint(i, n-1)
+        result[i] = seq[j]
+        seq[i], seq[j] = seq[j], seq[i]
+    return result
+
+def generate_x_coordinates(n):
+    while True:
+        seq = list(range(n))
+        x_coordinates = constant_time_sample(seq, 255)
+        x_coordinates = list(set(x_coordinates))
+        if len(x_coordinates) == 255:
+            break
+    return x_coordinates
