@@ -13,19 +13,23 @@ class TestSplit(unittest.TestCase):
     for part in parts:
       self.assertEqual(len(part), len(self.secret)+1)
 
+    # test that the parts are different
+    for i in range(len(parts) - 1):
+      self.assertNotEqual(parts[i].hex(), parts[i + 1].hex())
+
   def test_split_invalid(self):
     with self.assertRaisesRegex(ValueError, 'Parts and threshold must be greater than 1'):
       split(self.secret, 0, 0)
 
     with self.assertRaisesRegex(ValueError, 'Parts must be greater than threshold'):
       split(self.secret, 2, 3)
-      
+
     with self.assertRaisesRegex(ValueError, 'Parts must be less than 256'):
       split(self.secret, 1000, 3)
 
     with self.assertRaisesRegex(ValueError, 'Secret must be at least 1 byte long'):
       split(None, 5, 3)
-    
+
     with self.assertRaisesRegex(ValueError, 'Secret must be at least 1 byte long'):
       split(bytearray(b''), 5, 3)
 
@@ -37,7 +41,7 @@ class TestCombine(unittest.TestCase):
       parts = split(self.secret, 5, 3)
     except ValueError as ve:
       self.fail(ve.args[0])
-  
+
     # brute force test if all the possible combinations of keys
     # result in the same secret
     for i in range(5):
@@ -53,24 +57,24 @@ class TestCombine(unittest.TestCase):
             self.assertEqual(b64encode(recomb), b64encode(self.secret))
           except ValueError as ve:
             self.fail(ve.args[0])
-  
+
   def test_combine_invalid(self):
     with self.assertRaisesRegex(ValueError, 'Not enough parts to combine'):
       combine(bytearray())
     with self.assertRaisesRegex(ValueError, 'Not enough parts to combine'):
       combine(None)
-    
+
     #check part length mismatch
     parts = [bytearray(b'ab'),bytearray(b'abc')]
     with self.assertRaisesRegex(ValueError, 'Parts are not the same length'):
       combine(parts)
-    
+
     #check part length too small
     parts = [bytearray(b'a'),bytearray(b'b')]
     with self.assertRaisesRegex(ValueError, 'Part is too short'):
       combine(parts)
 
-    #duplicate 
+    #duplicate
     parts = [bytearray(b'ab'),bytearray(b'ab')]
     with self.assertRaisesRegex(ValueError, 'Duplicate sample'):
       combine(parts)
