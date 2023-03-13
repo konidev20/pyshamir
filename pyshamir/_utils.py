@@ -96,5 +96,4 @@ def interpolate_polynomial(x_samples, y_samples, x)->int:
 def generate_x_coordinates(n):
     x_coordinates = list(range(n+1))
     secrets.SystemRandom().shuffle(x_coordinates)
-    x_coordinates = x_coordinates[:-1]
     return x_coordinates
