@@ -6,6 +6,7 @@
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=konidev20_pyshamir&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=konidev20_pyshamir)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=konidev20_pyshamir&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=konidev20_pyshamir)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=konidev20_pyshamir&metric=coverage)](https://sonarcloud.io/summary/new_code?id=konidev20_pyshamir)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/konidev20/pyshamir/badge)](https://api.securityscorecards.dev/projects/github.com/konidev20/pyshamir)
 
 ## Description
 
