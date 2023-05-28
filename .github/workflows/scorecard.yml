@@ -12,7 +12,7 @@ on:
   schedule:
     - cron: '23 14 * * 0'
   push:
-    branches: [ "main" ]
+    branches: [ "main", "add-security-scorecard-to-github-actions" ]
 
 # Declare default permissions as read only.
 permissions: read-all
