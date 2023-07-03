@@ -1,5 +1,5 @@
 import secrets
-from ._constants import LOG_TABLE, EXP_TABLE
+from ctypes import c_uint8
 
 def add(a, b)->int:
     """
@@ -8,35 +8,49 @@ def add(a, b)->int:
     out = a ^ b
     return out
 
-def mul(a, b)->int:
-    """
-    Multiplies two numbers in the finite field GF(256)
-    """
-    log_a = LOG_TABLE[a]
-    log_b = LOG_TABLE[b]
-    log_sum = (int(log_a) + int(log_b)) % 255
-    ret = int(EXP_TABLE[log_sum])
 
-    if a == 0 or b == 0:
-        return 0
-    
-    return int(ret)
+def inverse(a):
+    b = mul(a, a)
+    c = mul(a, b)
+    b = mul(c, c)
+    b = mul(b, b)
+    c = mul(b, c)
+    b = mul(b, b)
+    b = mul(b, b)
+    b = mul(b, c)
+    b = mul(b, b)
+    b = mul(a, b)
+    return mul(b, b)
+
+
+def mul(a, b):
+    a = c_uint8(a)
+    b = c_uint8(b)
+    r = c_uint8(0)
+    i = 8
+
+    while i > 0:
+        i -= 1
+        p1 = (-(c_uint8(b.value >> i).value & 1) & a.value)
+        p2 = (-(c_uint8(r.value >> 7).value) & 0x1B)
+        p3 = c_uint8(2* r.value)
+        r = c_uint8(p1 ^ p2 ^ p3.value)
+
+    return r.value
+
 
 def div(a, b)->int:
-    """
-    Divides two numbers in the finite field GF(256)
-    """
-    if b == 0:
-        raise ZeroDivisionError("Divide by zero")
-    log_a = LOG_TABLE[a]
-    log_b = LOG_TABLE[b]
-    diff = ((int(log_a) - int(log_b)) + 255) % 255
-    ret = int(EXP_TABLE[diff])
+    a = c_uint8(a)
+    b = c_uint8(b)
 
-    if a == 0:
+    if b.value == 0:
+        raise ZeroDivisionError("Divide by zero")
+    ret = mul(a.value,inverse(b.value))
+
+    if a.value == 0:
         return 0
 
-    return int(ret)
+    return ret
 
 class Polynomial:
     """
