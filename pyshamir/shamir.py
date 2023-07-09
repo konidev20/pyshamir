@@ -1,7 +1,7 @@
 import secrets
 from ._utils import make_polynomial, interpolate_polynomial, generate_x_coordinates
 
-def combine(parts: list[bytearray]) -> bytearray:
+def combine(parts: list) -> bytearray:
     """
     Takes a list of parts and returns the secret
     :param parts:
@@ -53,7 +53,7 @@ def combine(parts: list[bytearray]) -> bytearray:
 
     return secret
 
-def split(secret: bytes, parts: int, threshold: int) -> list[bytearray]:
+def split(secret: bytes, parts: int, threshold: int) -> list:
     """
     Takes a secret and splits it into parts
     :param secret:
