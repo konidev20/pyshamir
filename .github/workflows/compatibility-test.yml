@@ -12,6 +12,7 @@ jobs:
   compatibility:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
@@ -41,6 +42,6 @@ jobs:
         reconstructed = pyshamir.combine(parts[:3])
         
         assert reconstructed == secret, 'Secret reconstruction failed'
-        print('✓ Basic functionality test passed')
-        print('✓ Package import and functionality verification completed successfully')
+        print('OK: Basic functionality test passed')
+        print('OK: Package import and functionality verification completed successfully')
         " 
