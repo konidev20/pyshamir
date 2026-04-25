@@ -1,4 +1,3 @@
-import secrets
 from ._utils import make_polynomial, interpolate_polynomial, generate_x_coordinates
 
 def combine(parts: list) -> bytearray:
