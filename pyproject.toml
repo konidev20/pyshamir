@@ -37,3 +37,16 @@ packages = ["pyshamir"]
 
 [tool.setuptools.dynamic]
 version = { attr = "pyshamir.__version__" }
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+extend-ignore = ["E203"]
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+files = ["pyshamir"]

@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import secrets
 from ctypes import c_uint8
 
-def add(a, b)->int:
+
+def add(a: int, b: int) -> int:
     """
     Adds two numbers in the finite field GF(256)
     """
@@ -9,7 +12,7 @@ def add(a, b)->int:
     return out
 
 
-def inverse(a):
+def inverse(a: int) -> int:
     b = mul(a, a)
     c = mul(a, b)
     b = mul(c, c)
@@ -23,43 +26,43 @@ def inverse(a):
     return mul(b, b)
 
 
-def mul(a, b):
-    a = c_uint8(a)
-    b = c_uint8(b)
+def mul(a: int, b: int) -> int:
+    a_u = c_uint8(a)
+    b_u = c_uint8(b)
     r = c_uint8(0)
     i = 8
 
     while i > 0:
         i -= 1
-        p1 = (-(c_uint8(b.value >> i).value & 1) & a.value)
-        p2 = (-(c_uint8(r.value >> 7).value) & 0x1B)
-        p3 = c_uint8(2* r.value)
+        p1 = -(c_uint8(b_u.value >> i).value & 1) & a_u.value
+        p2 = -(c_uint8(r.value >> 7).value) & 0x1B
+        p3 = c_uint8(2 * r.value)
         r = c_uint8(p1 ^ p2 ^ p3.value)
 
     return r.value
 
 
-def div(a, b)->int:
-    a = c_uint8(a)
-    b = c_uint8(b)
+def div(a: int, b: int) -> int:
+    a_u = c_uint8(a)
+    b_u = c_uint8(b)
 
-    if b.value == 0:
+    if b_u.value == 0:
         raise ZeroDivisionError("Divide by zero")
-    ret = mul(a.value,inverse(b.value))
+    ret = mul(a_u.value, inverse(b_u.value))
 
-    if a.value == 0:
+    if a_u.value == 0:
         return 0
 
     return ret
 
+
 class Polynomial:
-    """
-    Takes N sample points and returns the value of the polynomial at x using Lagrange interpolation
-    """
-    def __init__(self, degree):
+    """Polynomial in GF(256), evaluated via Horner's method."""
+
+    def __init__(self, degree: int) -> None:
         self.coefficients = bytearray(degree + 1)
 
-    def evaluate(self, x)->int:
+    def evaluate(self, x: int) -> int:
         # origin case
         if x == 0:
             return self.coefficients[0]
@@ -72,7 +75,8 @@ class Polynomial:
             out = add(mul(out, x), coeff)
         return out
 
-def make_polynomial(intercept, degree)->Polynomial:
+
+def make_polynomial(intercept: int, degree: int) -> Polynomial:
     """
     Creates a random polynomial with the given intercept and degree
     :param intercept:
@@ -89,10 +93,9 @@ def make_polynomial(intercept, degree)->Polynomial:
 
     return polynomial_instance
 
-def interpolate_polynomial(x_samples, y_samples, x)->int:
-    """
-    Takes N sample points and returns the value of the polynomial at x using Lagrange interpolation
-    """
+
+def interpolate_polynomial(x_samples: bytearray, y_samples: bytearray, x: int) -> int:
+    """Lagrange-interpolate N sample points in GF(256), returning the value at x."""
     limit = len(x_samples)
     result = 0
     for i in range(limit):
@@ -107,7 +110,8 @@ def interpolate_polynomial(x_samples, y_samples, x)->int:
         result = add(result, group)
     return result
 
-def generate_x_coordinates(n):
+
+def generate_x_coordinates(n: int) -> list[int]:
     x_coordinates = list(range(n))
     secrets.SystemRandom().shuffle(x_coordinates)
     return x_coordinates
