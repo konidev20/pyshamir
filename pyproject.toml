@@ -26,6 +26,9 @@ classifiers = [
 ]
 dynamic = ["version"]
 
+[project.optional-dependencies]
+tests = ["pytest", "pytest-cov", "hypothesis"]
+
 [project.urls]
 Homepage = "https://github.com/konidev20/pyshamir"
 Documentation = "https://github.com/konidev20/pyshamir"
