@@ -1,0 +1,164 @@
+# Manual release workflow for pyshamir.
+#
+# Dispatch this workflow with a target semver (e.g. 1.0.5, 1.1.0rc1) to:
+#   1. Validate the version (regex + not-equal-to-current + tag-doesn't-exist)
+#   2. Bump pyshamir/__init__.py and commit to main as github-actions[bot]
+#   3. Create and push the vX.Y.Z tag (atomic with the main push)
+#   4. Build sdist + wheel
+#   5. Publish to PyPI via OIDC trusted publishing
+#   6. Create a GitHub release with auto-generated release notes
+#
+# Restricted to the repository owner via `if: github.actor == github.repository_owner`.
+#
+# Rollback (if a release fails partway):
+#   - PyPI publishes are immutable; if step 5 succeeded but step 6 failed, the
+#     PyPI version exists and only the GitHub release page is missing — re-run
+#     just the gh-release step manually, or create the release from the UI.
+#   - If only step 2/3 succeeded (bump + tag pushed, no PyPI publish), delete
+#     the bad tag (`git push --delete origin vX.Y.Z`) and revert the bump
+#     commit on main, then re-dispatch.
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Target version (semver, e.g. 1.0.5 or 1.1.0rc1). The vX.Y.Z tag is created automatically.'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  bump-and-tag:
+    name: Bump version and tag
+    runs-on: ubuntu-latest
+    if: github.actor == github.repository_owner
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Validate input
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(rc[0-9]+|a[0-9]+|b[0-9]+)?$ ]]; then
+            echo "::error::Version must match semver (e.g. 1.0.5 or 1.1.0rc1), got: '$VERSION'"
+            exit 1
+          fi
+          current=$(grep -E '^__version__\s*=' pyshamir/__init__.py | sed -E 's/.*"([^"]+)".*/\1/')
+          if [[ "$VERSION" == "$current" ]]; then
+            echo "::error::Version is unchanged from current ($current)"
+            exit 1
+          fi
+          if git ls-remote --tags --exit-code origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
+            echo "::error::Tag v$VERSION already exists on origin"
+            exit 1
+          fi
+          echo "Validation passed: bumping $current -> $VERSION"
+
+      - name: Bump pyshamir/__init__.py
+        id: bump
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          sed -i -E "s/^__version__\s*=.*/__version__ = \"$VERSION\"/" pyshamir/__init__.py
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "--- pyshamir/__init__.py after bump ---"
+          cat pyshamir/__init__.py
+
+      - name: Commit, tag, and push atomically
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pyshamir/__init__.py
+          git commit -m "chore: bump version to v$VERSION"
+          git tag "v$VERSION"
+          # Atomic push: main commit and tag go together, or neither does.
+          git push --atomic origin main "refs/tags/v$VERSION"
+
+  build:
+    name: Build distribution
+    needs: bump-and-tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the new tag
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ needs.bump-and-tag.outputs.tag }}
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.13"
+
+      - name: Install build
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+      - name: Build sdist + wheel
+        run: python -m build
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI via OIDC
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pyshamir
+    permissions:
+      id-token: write
+    steps:
+      - name: Download dist artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  gh-release:
+    name: Create GitHub release
+    needs: [bump-and-tag, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download dist artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist
+          path: dist/
+
+      - name: Create GitHub release with auto-generated notes
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          tag_name: ${{ needs.bump-and-tag.outputs.tag }}
+          files: dist/*
+          generate_release_notes: true
