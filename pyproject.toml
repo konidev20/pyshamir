@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=77.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyshamir"
+description = "Python port of Shamir key Split and Combine methods from Hashicorp Vault."
+readme = "README.md"
+license = "MPL-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+authors = [{ name = "Srigovind Nayak", email = "sgovind.dev@outlook.com" }]
+maintainers = [{ name = "Srigovind Nayak", email = "sgovind.dev@outlook.com" }]
+keywords = ["shamir", "pyshamir"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/konidev20/pyshamir"
+Documentation = "https://github.com/konidev20/pyshamir"
+"Source Code" = "https://github.com/konidev20/pyshamir"
+"Issue Tracker" = "https://github.com/konidev20/pyshamir/issues"
+
+[tool.setuptools]
+packages = ["pyshamir"]
+
+[tool.setuptools.dynamic]
+version = { attr = "pyshamir.__version__" }
