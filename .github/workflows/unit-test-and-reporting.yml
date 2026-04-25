@@ -8,35 +8,60 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+
 jobs:
-  unittesting:
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - name: Fetch files
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+      - name: Run pytest with coverage
+        run: pytest --cov=pyshamir --cov-report=xml --cov-report=term-missing
+      - name: SonarCloud scan
+        # Only run SonarCloud on one matrix leg to avoid duplicate scans.
+        if: matrix.python-version == '3.9'
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=konidev20_pyshamir
+            -Dsonar.organization=konidev20
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.sources=pyshamir
+
+  lint:
+    name: Lint and type-check
     runs-on: ubuntu-latest
     steps:
-    - name: Fetch Files
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: Set up Python 3.7
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.7
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install coverage
-    - name: Run Tests and Coverage
-      continue-on-error: false
-      run: |
-        python -m coverage run --source pyshamir -m unittest discover -p test_*.py
-        python -m coverage xml
-    - name: SonarCloud Scan
-      uses: SonarSource/sonarcloud-github-action@master
-      env:
-        GITHUB_TOKEN: ${{ github.token }}  # Needed to get PR information, if any
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      with:
-        args:
-          -Dsonar.projectKey=konidev20_pyshamir
-          -Dsonar.organization=konidev20
-          -Dsonar.python.coverage.reportPaths=coverage.xml
-          -Dsonar.sources=pyshamir
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install ruff and mypy
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff mypy
+      - name: ruff check
+        run: ruff check pyshamir tests
+      - name: ruff format --check
+        run: ruff format --check pyshamir tests
+      - name: mypy --strict
+        run: mypy pyshamir

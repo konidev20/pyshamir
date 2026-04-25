@@ -5,54 +5,63 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: read
+
 jobs:
-  build-and-publish:
-    name: Build and publish PyShamir dist 📦
+  build:
+    name: Build distribution 📦
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Compute version
-        id: compute_version
-        run: echo "version=$(echo ${{ github.ref_name }} | perl -pe '($_)=/([0-9]+([.][0-9]+)+)/')" >>${GITHUB_OUTPUT}
-      - name: Setup Python 3.7
-        uses: actions/setup-python@v3
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.7"
-      - name: Install pypa/build
-        run: >-
-          python -m
-          pip install
-          build
-          --user
-      - name: Build a binary wheel and a source tarball
-        run: >-
-          python -m
-          build
-          --sdist
-          --wheel
-          --outdir dist/
-          .
-      - name: Create release
-        uses: actions/create-release@v1
-        id: create_release
+          python-version: "3.13"
+      - name: Install build
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+      - name: Build sdist + wheel
+        run: python -m build
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-      - name: Upload dist 📦 to release assets
-        uses: actions/upload-release-asset@v1
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI via OIDC
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pyshamir
+    permissions:
+      id-token: write
+    steps:
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_name: pyshamir-${{ steps.compute_version.outputs.version }}.tar.gz
-          asset_path: ./dist/pyshamir-${{ steps.compute_version.outputs.version }}.tar.gz
-          asset_content_type: application/gzip
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-      - name: Publish dist 📦 to PyPI
-        if: startsWith(github.ref, 'refs/tags')
+          name: dist
+          path: dist/
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  release:
+    name: Create GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          name: dist
+          path: dist/
+      - name: Create GitHub release with sdist + wheel
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
