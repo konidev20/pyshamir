@@ -50,3 +50,7 @@ extend-ignore = ["E203"]
 python_version = "3.9"
 strict = true
 files = ["pyshamir"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers"

@@ -1,90 +1,75 @@
-import unittest
-from base64 import b64decode, b64encode
+from __future__ import annotations
+
+import itertools
+from base64 import b64decode
+
+import pytest
 
 from pyshamir import combine, split
 
-
-class TestSplit(unittest.TestCase):
-    secret = b64decode("a+m4G0kEkKDQK4MFGz7L0vLz5oViQkDSLThiC4zDRZU=")
-
-    def test_split(self):
-        try:
-            parts = split(self.secret, 5, 3)
-            self.assertEqual(len(parts), 5)
-        except ValueError as ve:
-            self.fail(ve.args[0])
-        for part in parts:
-            self.assertEqual(len(part), len(self.secret) + 1)
-
-        # test that the parts are different
-        for i in range(len(parts) - 1):
-            self.assertNotEqual(parts[i].hex(), parts[i + 1].hex())
-
-    def test_split_invalid(self):
-        with self.assertRaisesRegex(
-            ValueError, "Parts and threshold must be greater than 1"
-        ):
-            split(self.secret, 0, 0)
-
-        with self.assertRaisesRegex(ValueError, "Parts must be greater than threshold"):
-            split(self.secret, 2, 3)
-
-        with self.assertRaisesRegex(ValueError, "Parts must be less than 256"):
-            split(self.secret, 1000, 3)
-
-        with self.assertRaisesRegex(ValueError, "Secret must be at least 1 byte long"):
-            split(None, 5, 3)
-
-        with self.assertRaisesRegex(ValueError, "Secret must be at least 1 byte long"):
-            split(bytearray(b""), 5, 3)
+SPLIT_SECRET = b64decode("a+m4G0kEkKDQK4MFGz7L0vLz5oViQkDSLThiC4zDRZU=")
+COMBINE_SECRET = b64decode("esfX3MUC++BrcwkiwsKtK6M5Pi5yvuc/A/6LweWJ5FA=")
 
 
-class TestCombine(unittest.TestCase):
-    secret = b64decode("esfX3MUC++BrcwkiwsKtK6M5Pi5yvuc/A/6LweWJ5FA=")
-
-    def test_combine(self):
-        try:
-            parts = split(self.secret, 5, 3)
-        except ValueError as ve:
-            self.fail(ve.args[0])
-
-        # brute force test if all the possible combinations of keys
-        # result in the same secret
-        for i in range(5):
-            for j in range(5):
-                if j == i:
-                    continue
-                for k in range(5):
-                    if k == i or k == j:
-                        continue
-                    int_parts = [parts[i], parts[j], parts[k]]
-                    try:
-                        recomb = combine(int_parts)
-                        self.assertEqual(b64encode(recomb), b64encode(self.secret))
-                    except ValueError as ve:
-                        self.fail(ve.args[0])
-
-    def test_combine_invalid(self):
-        with self.assertRaisesRegex(ValueError, "Not enough parts to combine"):
-            combine(bytearray())
-        with self.assertRaisesRegex(ValueError, "Not enough parts to combine"):
-            combine(None)
-
-        # check part length mismatch
-        parts = [bytearray(b"ab"), bytearray(b"abc")]
-        with self.assertRaisesRegex(ValueError, "Parts are not the same length"):
-            combine(parts)
-
-        # check part length too small
-        parts = [bytearray(b"a"), bytearray(b"b")]
-        with self.assertRaisesRegex(ValueError, "Part is too short"):
-            combine(parts)
-
-        # duplicate
-        parts = [bytearray(b"ab"), bytearray(b"ab")]
-        with self.assertRaisesRegex(ValueError, "Duplicate sample"):
-            combine(parts)
+def test_split_returns_correct_part_count_and_length():
+    parts = split(SPLIT_SECRET, 5, 3)
+    assert len(parts) == 5
+    for part in parts:
+        assert len(part) == len(SPLIT_SECRET) + 1
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_split_produces_distinct_parts():
+    parts = split(SPLIT_SECRET, 5, 3)
+    for i in range(len(parts) - 1):
+        assert parts[i].hex() != parts[i + 1].hex()
+
+
+@pytest.mark.parametrize(
+    "parts, threshold, message",
+    [
+        (0, 0, "Parts and threshold must be greater than 1"),
+        (2, 3, "Parts must be greater than threshold"),
+        (1000, 3, "Parts must be less than 256"),
+    ],
+)
+def test_split_invalid_arguments(parts, threshold, message):
+    with pytest.raises(ValueError, match=message):
+        split(SPLIT_SECRET, parts, threshold)
+
+
+@pytest.mark.parametrize("secret", [None, bytearray(b"")], ids=["none", "empty"])
+def test_split_invalid_secret(secret):
+    with pytest.raises(ValueError, match="Secret must be at least 1 byte long"):
+        split(secret, 5, 3)
+
+
+@pytest.mark.parametrize(
+    "indices",
+    list(itertools.combinations(range(5), 3)),
+    ids=lambda x: "+".join(str(i) for i in x),
+)
+def test_combine_recovers_secret_from_any_threshold_subset(indices):
+    parts = split(COMBINE_SECRET, 5, 3)
+    selected = [parts[i] for i in indices]
+    assert combine(selected) == COMBINE_SECRET
+
+
+@pytest.mark.parametrize("parts", [None, bytearray()], ids=["none", "empty"])
+def test_combine_with_too_few_parts(parts):
+    with pytest.raises(ValueError, match="Not enough parts to combine"):
+        combine(parts)
+
+
+def test_combine_with_mismatched_part_lengths():
+    with pytest.raises(ValueError, match="Parts are not the same length"):
+        combine([bytearray(b"ab"), bytearray(b"abc")])
+
+
+def test_combine_with_too_short_parts():
+    with pytest.raises(ValueError, match="Part is too short"):
+        combine([bytearray(b"a"), bytearray(b"b")])
+
+
+def test_combine_with_duplicate_samples():
+    with pytest.raises(ValueError, match="Duplicate sample"):
+        combine([bytearray(b"ab"), bytearray(b"ab")])
