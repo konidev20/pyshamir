@@ -1,6 +1,6 @@
 # How to contribute
 
-Please read these guidelines before contributing to VaultSharp:
+Please read these guidelines before contributing to pyshamir:
 
  - [Question or Problem?](#question)
  - [Issues and Bugs](#issue)
@@ -52,7 +52,7 @@ to the project.
 ### License.
 
 You hereby represent that all present, past and future contributions are governed by the
-[MIT License](https://opensource.org/licenses/MIT)
+[Mozilla Public License 2.0](https://opensource.org/licenses/MPL-2.0)
 copyright statement.
 
 This entails that to the extent possible under law, you transfer all copyright and related or neighboring rights

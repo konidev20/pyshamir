@@ -1,7 +1,9 @@
-import secrets
-from ._utils import make_polynomial, interpolate_polynomial, generate_x_coordinates
+from __future__ import annotations
 
-def combine(parts: list) -> bytearray:
+from ._utils import generate_x_coordinates, interpolate_polynomial, make_polynomial
+
+
+def combine(parts: list[bytearray]) -> bytearray:
     """
     Takes a list of parts and returns the secret
     :param parts:
@@ -30,8 +32,8 @@ def combine(parts: list) -> bytearray:
     x_samples = bytearray(len(parts))
     y_samples = bytearray(len(parts))
 
-    # set the x value for each sample and ensure the no_sample values are the same , otherwise div() can be unhappy
-    check_map = {}
+    # Record x for each sample; duplicate x-coordinates would break interpolation.
+    check_map: dict[int, bool] = {}
 
     for i, part in enumerate(parts):
         samp = part[first_part_len - 1]
@@ -53,7 +55,8 @@ def combine(parts: list) -> bytearray:
 
     return secret
 
-def split(secret: bytes, parts: int, threshold: int) -> list:
+
+def split(secret: bytes, parts: int, threshold: int) -> list[bytearray]:
     """
     Takes a secret and splits it into parts
     :param secret:
@@ -76,8 +79,8 @@ def split(secret: bytes, parts: int, threshold: int) -> list:
     # Generate random list of x coordinates
     x_coordinates = generate_x_coordinates(255)
 
-    # Allocate the output array , initalize the final byte of the output with the offset.
-    # This is used to ensure that the same secret can be split into different parts
+    # Allocate output buffers; the final byte of each holds the (offset) x-coordinate.
+    # Random x's ensure repeated splits of the same secret yield different parts.
     output = [bytearray() for _ in range(parts)]
     for i in range(len(output)):
         output[i] = bytearray(len(secret) + 1)

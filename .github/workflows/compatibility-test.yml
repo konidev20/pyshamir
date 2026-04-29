@@ -1,0 +1,50 @@
+name: Compatibility Test
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  compatibility:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install package
+      run: |
+        python -m pip install --upgrade pip
+        pip install .
+    
+    - name: Test import and basic functionality
+      run: |
+        python -c "
+        import pyshamir
+        print(f'PyShamir version: {pyshamir.__version__}')
+        
+        # Test basic functionality
+        secret = b'Hello, World!'
+        parts = pyshamir.split(secret, 5, 3)
+        reconstructed = pyshamir.combine(parts[:3])
+        
+        assert reconstructed == secret, 'Secret reconstruction failed'
+        print('OK: Basic functionality test passed')
+        print('OK: Package import and functionality verification completed successfully')
+        " 
