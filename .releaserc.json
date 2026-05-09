@@ -1,0 +1,22 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "sed -i -E 's/^__version__[[:space:]]*=.*/__version__ = \"${nextRelease.version}\"/' pyshamir/__init__.py && python -m build"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          { "path": "dist/*.tar.gz", "label": "sdist" },
+          { "path": "dist/*.whl", "label": "wheel" }
+        ]
+      }
+    ]
+  ]
+}

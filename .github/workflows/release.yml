@@ -1,40 +1,29 @@
-# Automated release workflow for pyshamir, driven by release-please.
+# Manual release workflow for pyshamir, driven by semantic-release.
+# See https://github.com/semantic-release/semantic-release.
 #
-# Flow:
-#   1. Every push to main runs release-please-action.
-#   2. If there are releasable Conventional Commits since the last release
-#      (feat:, fix:, perf:, revert:, or BREAKING CHANGE), release-please opens
-#      or updates a "Release PR" that:
-#        - bumps __version__ in pyshamir/__init__.py
-#        - updates CHANGELOG.md
-#        - retitles itself "chore(main): release X.Y.Z"
-#   3. A maintainer reviews and merges the Release PR (this satisfies the
-#      branch protection's required-PR-review on main).
-#   4. The next push to main (the merge commit) re-runs release-please, which
-#      sees the merged Release PR, creates the vX.Y.Z tag, and creates the
-#      GitHub release as a *draft* (so we can attach signed assets before the
-#      release becomes immutable on publish).
-#   5. The build / publish / sign-and-attach jobs run only when
-#      release_created == true (i.e. on the post-merge run that cuts the tag).
-#      The sign-and-attach job uploads sdist+wheel+sigstore bundles and then
-#      flips the release out of draft state, publishing it.
+# Trigger this from the Actions tab. semantic-release will:
+#   1. Look at commits since the last tag and decide whether there is a
+#      releasable change. Default behaviour: feat: -> minor, fix: -> patch,
+#      BREAKING CHANGE: -> major. All other types (chore:, ci:, docs:,
+#      build:, etc.) do NOT trigger a release.
+#   2. Compute the next semver version, create the vX.Y.Z tag, and push it.
+#   3. @semantic-release/exec runs the prepareCmd in .releaserc.json:
+#      sed __version__ in pyshamir/__init__.py to the new version, then
+#      build sdist + wheel via `python -m build`.
+#   4. @semantic-release/github creates the GitHub release with the built
+#      artifacts attached (using draft -> upload -> publish internally to
+#      handle GitHub's release immutability).
+#   5. A separate workflow step publishes to PyPI via OIDC trusted
+#      publishing.
 #
-# To force a specific version (e.g. a pre-release or skipping ahead):
-#   add `Release-As: 1.1.0-rc1` to the commit body of any commit on main.
-#
-# Rollback (if something goes wrong after the tag/release is created):
-#   - PyPI publishes are immutable; to ship a fix, merge another commit to
-#     main and let release-please cut a new patch.
-#   - To delete a bad release: `gh release delete vX.Y.Z` and
-#     `git push --delete origin vX.Y.Z`. Edit
-#     .release-please-manifest.json back to the previous version and commit.
+# If there are no releasable commits since the last tag, semantic-release
+# exits 0 without doing anything; the PyPI step then no-ops because no
+# wheel was built.
 
 name: Release
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -44,105 +33,54 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release-please:
-    name: Release Please
+  release:
+    name: Release via semantic-release
     runs-on: ubuntu-latest
+    if: github.actor == github.repository_owner
     permissions:
-      contents: write       # create the release branch, tag, and GitHub release
-      pull-requests: write  # open and update the Release PR
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
+      contents: write       # tag + GitHub release
+      issues: write         # semantic-release may comment on issues
+      pull-requests: write  # semantic-release may comment on PRs
+      id-token: write       # PyPI OIDC trusted publishing
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pyshamir
     steps:
-      - name: Run release-please
-        id: release
-        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
-        with:
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
-
-  build:
-    name: Build distribution
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout the new tag
+      - name: Checkout main
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
+          fetch-depth: 0
+          persist-credentials: false  # semantic-release uses GITHUB_TOKEN itself
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 'lts/*'
 
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          python-version: "3.13"
+          python-version: '3.13'
 
-      - name: Install build (hash-pinned)
+      - name: Install Python build deps (hash-pinned)
         run: |
           python -m pip install --upgrade pip
           pip install --require-hashes -r requirements/build.txt
 
-      - name: Build sdist + wheel
-        run: python -m build
+      - name: Install semantic-release and plugins
+        run: |
+          npm install --no-save \
+            semantic-release@24 \
+            @semantic-release/commit-analyzer@13 \
+            @semantic-release/release-notes-generator@14 \
+            @semantic-release/exec@7 \
+            @semantic-release/github@11
 
-      - name: Upload dist artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: dist
-          path: dist/
-
-  publish:
-    name: Publish to PyPI via OIDC
-    needs: [release-please, build]
-    if: needs.release-please.outputs.release_created == 'true'
-    runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/pyshamir
-    permissions:
-      id-token: write
-    steps:
-      - name: Download dist artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: dist
-          path: dist/
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
 
       - name: Publish to PyPI
+        if: success() && hashFiles('dist/*.whl') != ''
         uses: pypa/gh-action-pypi-publish@release/v1
-
-  sign-and-attach:
-    name: Sign and attach release assets
-    needs: [release-please, build]
-    if: needs.release-please.outputs.release_created == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write     # upload assets to the GitHub release
-      id-token: write     # sigstore keyless signing (Fulcio cert via OIDC)
-    steps:
-      - name: Download dist artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: dist
-          path: dist/
-
-      - name: Sign sdist + wheel with Sigstore
-        uses: sigstore/gh-action-sigstore-python@04cffa1d795717b140764e8b640de88853c92acc # v3.3.0
-        with:
-          inputs: ./dist/*.tar.gz ./dist/*.whl
-
-      - name: Upload signed assets to the draft GitHub release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release upload "${{ needs.release-please.outputs.tag_name }}" \
-            dist/*.tar.gz dist/*.whl dist/*.sigstore.json \
-            --repo "${{ github.repository }}"
-
-      - name: Publish the GitHub release (exits draft state)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release edit "${{ needs.release-please.outputs.tag_name }}" \
-            --draft=false \
-            --repo "${{ github.repository }}"
