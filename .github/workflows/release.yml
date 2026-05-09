@@ -12,9 +12,12 @@
 #      branch protection's required-PR-review on main).
 #   4. The next push to main (the merge commit) re-runs release-please, which
 #      sees the merged Release PR, creates the vX.Y.Z tag, and creates the
-#      GitHub release.
+#      GitHub release as a *draft* (so we can attach signed assets before the
+#      release becomes immutable on publish).
 #   5. The build / publish / sign-and-attach jobs run only when
 #      release_created == true (i.e. on the post-merge run that cuts the tag).
+#      The sign-and-attach job uploads sdist+wheel+sigstore bundles and then
+#      flips the release out of draft state, publishing it.
 #
 # To force a specific version (e.g. a pre-release or skipping ahead):
 #   add `Release-As: 1.1.0-rc1` to the commit body of any commit on main.
@@ -128,10 +131,18 @@ jobs:
         with:
           inputs: ./dist/*.tar.gz ./dist/*.whl
 
-      - name: Upload signed assets to the GitHub release
+      - name: Upload signed assets to the draft GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ needs.release-please.outputs.tag_name }}" \
             dist/*.tar.gz dist/*.whl dist/*.sigstore.json \
+            --repo "${{ github.repository }}"
+
+      - name: Publish the GitHub release (exits draft state)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "${{ needs.release-please.outputs.tag_name }}" \
+            --draft=false \
             --repo "${{ github.repository }}"
