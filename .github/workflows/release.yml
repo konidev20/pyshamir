@@ -1,31 +1,29 @@
-# Manual release workflow for pyshamir.
+# Manual release workflow for pyshamir, driven by semantic-release.
+# See https://github.com/semantic-release/semantic-release.
 #
-# Trigger this from the Actions tab and pick a bump type (patch/minor/major).
-# The workflow:
-#   1. Uses mathieudutour/github-tag-action to compute the next semver tag
-#      based on the chosen bump type and pushes it to origin.
-#   2. Updates pyshamir/__init__.py in the workflow's working tree to the
-#      new version (main is not modified).
-#   3. Builds sdist + wheel.
-#   4. Publishes to PyPI via OIDC trusted publishing.
-#   5. Creates a GitHub release as a draft, uploads the artifacts, and
-#      flips it out of draft state (drafts are required because GitHub
-#      releases become immutable on publish, blocking later asset uploads).
+# Trigger this from the Actions tab. semantic-release will:
+#   1. Look at commits since the last tag and decide whether there is a
+#      releasable change. Default behaviour: feat: -> minor, fix: -> patch,
+#      BREAKING CHANGE: -> major. All other types (chore:, ci:, docs:,
+#      build:, etc.) do NOT trigger a release.
+#   2. Compute the next semver version, create the vX.Y.Z tag, and push it.
+#   3. @semantic-release/exec runs the prepareCmd in .releaserc.json:
+#      sed __version__ in pyshamir/__init__.py to the new version, then
+#      build sdist + wheel via `python -m build`.
+#   4. @semantic-release/github creates the GitHub release with the built
+#      artifacts attached (using draft -> upload -> publish internally to
+#      handle GitHub's release immutability).
+#   5. A separate workflow step publishes to PyPI via OIDC trusted
+#      publishing.
 #
-# Periodically bump __version__ in main via a normal PR to keep the source
-# tree in sync with the latest tag.
+# If there are no releasable commits since the last tag, semantic-release
+# exits 0 without doing anything; the PyPI step then no-ops because no
+# wheel was built.
 
 name: Release
 
 on:
   workflow_dispatch:
-    inputs:
-      bump:
-        description: 'Type of version bump'
-        type: choice
-        options: [patch, minor, major]
-        default: patch
-        required: true
 
 permissions:
   contents: read
@@ -36,12 +34,14 @@ concurrency:
 
 jobs:
   release:
-    name: Tag, build, and publish
+    name: Release via semantic-release
     runs-on: ubuntu-latest
     if: github.actor == github.repository_owner
     permissions:
-      contents: write    # for tag creation + GitHub release
-      id-token: write    # for PyPI OIDC trusted publishing
+      contents: write       # tag + GitHub release
+      issues: write         # semantic-release may comment on issues
+      pull-requests: write  # semantic-release may comment on PRs
+      id-token: write       # PyPI OIDC trusted publishing
     environment:
       name: pypi
       url: https://pypi.org/p/pyshamir
@@ -50,50 +50,37 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+          persist-credentials: false  # semantic-release uses GITHUB_TOKEN itself
 
-      - name: Compute next semver tag
-        id: tag
-        uses: mathieudutour/github-tag-action@a22cf08638b34d5badda920f9daf6e72c477b07b # v6.2
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          default_bump: ${{ inputs.bump }}
-          tag_prefix: v
+          node-version: 'lts/*'
 
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          python-version: "3.13"
+          python-version: '3.13'
 
-      - name: Install build (hash-pinned)
+      - name: Install Python build deps (hash-pinned)
         run: |
           python -m pip install --upgrade pip
           pip install --require-hashes -r requirements/build.txt
 
-      - name: Sync __version__ in working tree to new tag
-        env:
-          NEW_VERSION: ${{ steps.tag.outputs.new_version }}
-        run: sed -i -E "s/^__version__\s*=.*/__version__ = \"$NEW_VERSION\"/" pyshamir/__init__.py
+      - name: Install semantic-release and plugins
+        run: |
+          npm install --no-save \
+            semantic-release@24 \
+            @semantic-release/commit-analyzer@13 \
+            @semantic-release/release-notes-generator@14 \
+            @semantic-release/exec@7 \
+            @semantic-release/github@11
 
-      - name: Build sdist + wheel
-        run: python -m build
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
 
       - name: Publish to PyPI
+        if: success() && hashFiles('dist/*.whl') != ''
         uses: pypa/gh-action-pypi-publish@release/v1
-
-      - name: Create GitHub release (draft) with artifacts
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
-        with:
-          tag_name: ${{ steps.tag.outputs.new_tag }}
-          draft: true
-          generate_release_notes: true
-          files: |
-            dist/*.tar.gz
-            dist/*.whl
-
-      - name: Publish the GitHub release (exits draft)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release edit "${{ steps.tag.outputs.new_tag }}" \
-            --draft=false \
-            --repo "${{ github.repository }}"
