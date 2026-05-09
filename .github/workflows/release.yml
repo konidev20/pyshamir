@@ -1,32 +1,37 @@
-# Manual release workflow for pyshamir.
+# Automated release workflow for pyshamir, driven by release-please.
 #
-# Dispatch this workflow with a target semver (e.g. 1.0.5, 1.1.0rc1) to:
-#   1. Validate the version (regex + not-equal-to-current + tag-doesn't-exist)
-#   2. Bump pyshamir/__init__.py and commit to main as github-actions[bot]
-#   3. Create and push the vX.Y.Z tag (atomic with the main push)
-#   4. Build sdist + wheel
-#   5. Publish to PyPI via OIDC trusted publishing
-#   6. Create a GitHub release with auto-generated release notes
+# Flow:
+#   1. Every push to main runs release-please-action.
+#   2. If there are releasable Conventional Commits since the last release
+#      (feat:, fix:, perf:, revert:, or BREAKING CHANGE), release-please opens
+#      or updates a "Release PR" that:
+#        - bumps __version__ in pyshamir/__init__.py
+#        - updates CHANGELOG.md
+#        - retitles itself "chore(main): release X.Y.Z"
+#   3. A maintainer reviews and merges the Release PR (this satisfies the
+#      branch protection's required-PR-review on main).
+#   4. The next push to main (the merge commit) re-runs release-please, which
+#      sees the merged Release PR, creates the vX.Y.Z tag, and creates the
+#      GitHub release.
+#   5. The build / publish / sign-and-attach jobs run only when
+#      release_created == true (i.e. on the post-merge run that cuts the tag).
 #
-# Restricted to the repository owner via `if: github.actor == github.repository_owner`.
+# To force a specific version (e.g. a pre-release or skipping ahead):
+#   add `Release-As: 1.1.0-rc1` to the commit body of any commit on main.
 #
-# Rollback (if a release fails partway):
-#   - PyPI publishes are immutable; if step 5 succeeded but step 6 failed, the
-#     PyPI version exists and only the GitHub release page is missing — re-run
-#     just the gh-release step manually, or create the release from the UI.
-#   - If only step 2/3 succeeded (bump + tag pushed, no PyPI publish), delete
-#     the bad tag (`git push --delete origin vX.Y.Z`) and revert the bump
-#     commit on main, then re-dispatch.
+# Rollback (if something goes wrong after the tag/release is created):
+#   - PyPI publishes are immutable; to ship a fix, merge another commit to
+#     main and let release-please cut a new patch.
+#   - To delete a bad release: `gh release delete vX.Y.Z` and
+#     `git push --delete origin vX.Y.Z`. Edit
+#     .release-please-manifest.json back to the previous version and commit.
 
 name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Target version (semver, e.g. 1.0.5 or 1.1.0rc1). The vX.Y.Z tag is created automatically.'
-        required: true
-        type: string
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -36,74 +41,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  bump-and-tag:
-    name: Bump version and tag
+  release-please:
+    name: Release Please
     runs-on: ubuntu-latest
-    if: github.actor == github.repository_owner
     permissions:
-      contents: write
+      contents: write       # create the release branch, tag, and GitHub release
+      pull-requests: write  # open and update the Release PR
     outputs:
-      tag: ${{ steps.bump.outputs.tag }}
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      - name: Checkout main
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
         with:
-          ref: main
-          fetch-depth: 0
-
-      - name: Validate input
-        env:
-          VERSION: ${{ inputs.version }}
-        run: |
-          set -euo pipefail
-          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(rc[0-9]+|a[0-9]+|b[0-9]+)?$ ]]; then
-            echo "::error::Version must match semver (e.g. 1.0.5 or 1.1.0rc1), got: '$VERSION'"
-            exit 1
-          fi
-          current=$(grep -E '^__version__\s*=' pyshamir/__init__.py | sed -E 's/.*"([^"]+)".*/\1/')
-          if [[ "$VERSION" == "$current" ]]; then
-            echo "::error::Version is unchanged from current ($current)"
-            exit 1
-          fi
-          if git ls-remote --tags --exit-code origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
-            echo "::error::Tag v$VERSION already exists on origin"
-            exit 1
-          fi
-          echo "Validation passed: bumping $current -> $VERSION"
-
-      - name: Bump pyshamir/__init__.py
-        id: bump
-        env:
-          VERSION: ${{ inputs.version }}
-        run: |
-          set -euo pipefail
-          sed -i -E "s/^__version__\s*=.*/__version__ = \"$VERSION\"/" pyshamir/__init__.py
-          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
-          echo "--- pyshamir/__init__.py after bump ---"
-          cat pyshamir/__init__.py
-
-      - name: Commit, tag, and push atomically
-        env:
-          VERSION: ${{ inputs.version }}
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pyshamir/__init__.py
-          git commit -m "chore: bump version to v$VERSION"
-          git tag "v$VERSION"
-          # Atomic push: main commit and tag go together, or neither does.
-          git push --atomic origin main "refs/tags/v$VERSION"
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
 
   build:
     name: Build distribution
-    needs: bump-and-tag
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the new tag
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ needs.bump-and-tag.outputs.tag }}
+          ref: ${{ needs.release-please.outputs.tag_name }}
 
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
@@ -126,7 +90,8 @@ jobs:
 
   publish:
     name: Publish to PyPI via OIDC
-    needs: build
+    needs: [release-please, build]
+    if: needs.release-please.outputs.release_created == 'true'
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -143,12 +108,13 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
-  gh-release:
-    name: Create GitHub release
-    needs: [bump-and-tag, build]
+  sign-and-attach:
+    name: Sign and attach release assets
+    needs: [release-please, build]
+    if: needs.release-please.outputs.release_created == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: write     # for the release + asset upload
+      contents: write     # upload assets to the GitHub release
       id-token: write     # sigstore keyless signing (Fulcio cert via OIDC)
     steps:
       - name: Download dist artifact
@@ -162,12 +128,10 @@ jobs:
         with:
           inputs: ./dist/*.tar.gz ./dist/*.whl
 
-      - name: Create GitHub release with auto-generated notes
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
-        with:
-          tag_name: ${{ needs.bump-and-tag.outputs.tag }}
-          files: |
-            dist/*.tar.gz
-            dist/*.whl
-            dist/*.sigstore.json
-          generate_release_notes: true
+      - name: Upload signed assets to the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ needs.release-please.outputs.tag_name }}" \
+            dist/*.tar.gz dist/*.whl dist/*.sigstore.json \
+            --repo "${{ github.repository }}"
