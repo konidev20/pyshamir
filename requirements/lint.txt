@@ -3,13 +3,13 @@
 librt==0.10.0
     # via mypy
 mypy==1.19.1
-    # via -r lint.in
+    # via -r requirements/lint.in
 mypy-extensions==1.1.0
     # via mypy
 pathspec==1.1.0
     # via mypy
-ruff==0.15.12
-    # via -r lint.in
+ruff==0.15.13
+    # via -r requirements/lint.in
 tomli==2.4.1
     # via mypy
 typing-extensions==4.15.0
