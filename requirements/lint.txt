@@ -8,9 +8,7 @@ mypy-extensions==1.1.0
     # via mypy
 pathspec==1.1.0
     # via mypy
-ruff==0.15.12
+ruff==0.15.13
     # via -r lint.in
-tomli==2.4.1
-    # via mypy
 typing-extensions==4.15.0
     # via mypy
