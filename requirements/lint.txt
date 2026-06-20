@@ -10,7 +10,7 @@ mypy-extensions==1.1.0
     # via mypy
 pathspec==1.1.0
     # via mypy
-ruff==0.15.14
+ruff==0.15.18
     # via -r lint.in
 typing-extensions==4.15.0
     # via mypy
